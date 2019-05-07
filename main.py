@@ -7,13 +7,13 @@ import imutils
 import numpy as np
 import time
 
-path = '/home/kbooth/my-stuff/tracking-stuff/test.mov'
+path = '/home/kbooth/my-stuff/tracking-stuff/IMG_0858.mov'
 # path = 0
 cap = cv2.VideoCapture(path)
 
 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print('Frame count:', frame_count)
-cap.set(cv2.CAP_PROP_POS_FRAMES, 230)  # start a bit later in the video
+cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # start a bit later in the video
 
 
 def resize(img, x, y):
@@ -35,13 +35,18 @@ colors.append((randint(0, 255), randint(0, 255), randint(0, 255)))
 
 previous_frame = to_gray(frame)
 orange = (39, 127, 255)
-ORANGE_MIN = np.array([5, 50, 50], np.uint8)
-ORANGE_MAX = np.array([15, 255, 255], np.uint8)
+
+red_min_1 = np.array([0, 70, 50], np.uint8)
+red_max_1 = np.array([10, 255, 255], np.uint8)
+
+red_min_2 = np.array([170, 70, 50], np.uint8)
+red_max_2 = np.array([180, 255, 255], np.uint8)
+
 
 previous_ball = None
 ball = None
 not_balls = []
-ball_path = deque(maxlen=50)
+ball_path = deque(maxlen=10)
 dx = 0
 dy = 0
 
@@ -70,17 +75,20 @@ while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
+
     frame = resize(frame, 1280, 720)
 
     blur = cv2.GaussianBlur(frame, (5, 5), 0)
     hsv = cv2.addWeighted(blur, 1.5, frame, -0.5, 0)
     hsv = to_hsv(frame)
-    hsv = cv2.inRange(hsv, ORANGE_MIN, ORANGE_MAX)
-    # cv2.imshow('filtered', filtered)
-    # filtered = cv2.dilate(hsv, None, iterations=4)
-    # cv2.imshow('dilated', filtered)
+    mask = cv2.inRange(hsv, red_min_1, red_max_1)
+    mask2 = cv2.inRange(hsv, red_min_2, red_max_2)
+    hsv = mask | mask2
+    cv2.imshow('filtered on color', hsv)
+    hsv = cv2.dilate(hsv, None, iterations=4)
+    cv2.imshow('dilated', hsv)
 
-    # opening = cv2.morphologyEx(filtered, cv2.MORPH_OPEN, None)
+    hsv = cv2.morphologyEx(hsv, cv2.MORPH_CLOSE, None)
     # cv2.imshow('opening', opening)
     # gray = filtered
     gray = hsv  # to_gray(hsv)
@@ -95,13 +103,14 @@ while cap.isOpened():
         i = 0
         for c in cnts:
             area = cv2.contourArea(c)
-            if not area or area < 400:
+            isConvex = cv2.isContourConvex(c)
+            if not area or area < 1000:
                 continue
 
             (x, y), radius = cv2.minEnclosingCircle(c)
             computed_area = 3.141 * radius * radius
 
-            if radius < 14 or radius > 20 or y < 90:
+            if radius < 35 or radius > 72:
                 continue
 
             x = int(x)
@@ -109,18 +118,20 @@ while cap.isOpened():
             radius = int(radius)
             area = int(area)
 
+            if x == 648 or x == 647 or x == 866 or x == 649 or radius == 71:
+                continue
+
             M = cv2.moments(c)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
 
             cv2.putText(frame,
                         f'x={x} y={y} r={radius} a={area}',
-                        (int(x),
-                         int(y)),
-                        cv2.FONT_HERSHEY_PLAIN,
-                        1.0,
+                        (x, y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        .5,
                         (0, 255, 255),
-                        2)
+                        1)
 
             ball = (x, y, radius, area)
             ball_path.append(ball)
@@ -134,7 +145,7 @@ while cap.isOpened():
         x = x + dx
         y = y + dy
 
-        cv2.circle(frame, (x, y), previous_ball[2], (0, 0, 255), 4)
+        cv2.circle(frame, (x, y), previous_ball[2], (0, 0, 255, 128), 4)
         previous_ball = (x, y, previous_ball[2], previous_ball[3])
 
     elif ball and previous_ball:
@@ -144,8 +155,16 @@ while cap.isOpened():
             m = dy / dx
             b = ball[1] - m * ball[0]
 
-            px = int(ball[0] + 30)
+            if dx < 0:
+                factor = -50
+            else:
+                factor = 50
+
+            px = int(ball[0] + factor)
             py = int(px * m + b)
+
+            bx = ball[0]
+            by = ball[1]
 
             cv2.arrowedLine(frame, (ball[0], ball[1]), (px, py), (255, 0, 0), 5)
 
@@ -154,6 +173,13 @@ while cap.isOpened():
 
     draw_contrail(frame)
 
+    frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+    cv2.putText(frame,f'frame={frame_num}',
+                        (0,10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        .5,
+                        (0, 255, 255),
+                        1)
     cv2.imshow('computed', gray)
     cv2.imshow('live', frame)
 
