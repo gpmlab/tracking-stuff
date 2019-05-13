@@ -7,35 +7,16 @@ import imutils
 import numpy as np
 import time
 
+from foos.images import ImageManipulator
+
+im = ImageManipulator()
 path = 'IMG_0858.mov'
 # path = 0
 cap = cv2.VideoCapture(path)
 
 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-fps = int(cap.get(cv2.CAP_PROP_FPS))
-
 print('Frame count:', frame_count)
 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # start a bit later in the video
-
-
-def draw_lines(lines, img):
-    if lines is None:
-        return img
-
-    for line in lines:
-        for x1, y1, x2, y2 in line:
-
-            angle = np.arctan2(y2 - y1, x2 - x1)
-            angle = angle * (180/np.pi)
-            angle = abs(angle)
-
-            if angle < 85 or angle > 95:
-                continue
-
-
-            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
-
-    return img
 
 
 def resize(img, x, y):
@@ -92,56 +73,7 @@ def draw_contrail(img):
     return img
 
 
-while cap.isOpened():
-
-    start = time.time()
-
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    frame = resize(frame, 1280, 720)
-
-    blur = cv2.GaussianBlur(frame, (5, 5), 0)
-    hsv = cv2.addWeighted(blur, 1.5, frame, -0.5, 0)
-    hsv = to_hsv(frame)
-
-    edges = cv2.Canny(hsv, 50, 150, apertureSize=3)
-    cv2.imshow('canny', edges)
-    edge_dilate = cv2.dilate(edges, None, iterations=4)
-    cv2.imshow('canny_dialate', edge_dilate)
-
-    edges = cv2.Canny(edge_dilate, 100, 150, apertureSize=3)
-    cv2.imshow('canny after dilate', edges)
-
-    rho = 1  # distance resolution in pixels of the Hough grid
-    theta = np.pi / 180  # angular resolution in radians of the Hough grid
-    threshold = 15  # minimum number of votes (intersections in Hough grid cell)
-    min_line_length = 400  # minimum number of pixels making up a line
-    max_line_gap = 100  # maximum gap in pixels between connectable line segments
-    line_image = np.copy(frame) * 0  # creating a blank to draw lines on
-
-    # Run Hough on edge detected image
-    # Output "lines" is an array containing endpoints of detected line segments
-    lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
-                            min_line_length, max_line_gap)
-
-    # test_mask = cv2.inRange(hsv, lower_white, upper_white)
-    mask = cv2.inRange(hsv, red_min_1, red_max_1)
-    mask2 = cv2.inRange(hsv, red_min_2, red_max_2)
-    hsv = mask | mask2
-    # cv2.imshow('filtered on color', hsv)
-    hsv = cv2.dilate(hsv, None, iterations=4)
-    # cv2.imshow('dilated', hsv)
-
-    hsv = cv2.morphologyEx(hsv, cv2.MORPH_CLOSE, None)
-    gray = hsv  # to_gray(hsv)
-    # test = gray - previous_frame
-    previous_frame = gray
-
-    cnts = cv2.findContours(gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-
+def find_ball(cnts):
     if len(cnts) > 0:
         ball = None
         i = 0
@@ -154,7 +86,7 @@ while cap.isOpened():
             (x, y), radius = cv2.minEnclosingCircle(c)
             computed_area = np.pi * radius * radius
 
-            if radius < 35 or radius > 72:
+            if radius < 18 or radius > 38:
                 continue
 
             x = int(x)
@@ -162,12 +94,10 @@ while cap.isOpened():
             radius = int(radius)
             area = int(area)
 
-            if x == 648 or x == 647 or x == 866 or x == 649 or radius == 71:
-                continue
-
-            M = cv2.moments(c)
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            m = cv2.moments(c)
+            center = (int(m["m10"] / m["m00"]), int(m["m01"] / m["m00"]))
             cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+            cv2.circle(frame, (center[0], center[1]), int(radius), (255, 0, 0), 2)
 
             cv2.putText(frame,
                         f'x={x} y={y} r={radius} a={area}',
@@ -179,6 +109,51 @@ while cap.isOpened():
 
             ball = (x, y, radius, area)
             ball_path.append(ball)
+
+    return ball
+
+
+while cap.isOpened():
+
+    start = time.time()
+
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = resize(frame, 640, 360)
+
+    # blur = cv2.GaussianBlur(frame, (5, 5), 0)
+    # hsv = cv2.addWeighted(blur, 1.5, frame, -0.5, 0)
+    hsv = to_hsv(frame)
+
+    edges = cv2.Canny(hsv, 50, 150, apertureSize=3)
+    cv2.imshow('canny', edges)
+    edge_dilate = cv2.dilate(edges, None, iterations=4)
+    cv2.imshow('canny_dialate', edge_dilate)
+
+    edges = cv2.Canny(edge_dilate, 100, 150, apertureSize=3)
+    cv2.imshow('canny after dilate', edges)
+
+    lines = im.get_lines(edges)
+
+    # test_mask = cv2.inRange(hsv, lower_white, upper_white)
+    mask = cv2.inRange(hsv, red_min_1, red_max_1)
+    mask2 = cv2.inRange(hsv, red_min_2, red_max_2)
+    hsv = mask | mask2
+    # cv2.imshow('filtered on color', hsv)
+    hsv = cv2.dilate(hsv, None, iterations=4)
+    # cv2.imshow('dilated', hsv)
+
+    hsv = cv2.morphologyEx(hsv, cv2.MORPH_CLOSE, None)
+    cv2.imshow('ball frame', hsv)
+    gray = hsv
+    previous_frame = gray
+
+    cnts = cv2.findContours(gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+
+    ball = find_ball(cnts)
 
     if not ball and previous_ball:
         # estimate ball position based on previous knowledge
@@ -225,15 +200,17 @@ while cap.isOpened():
                 (0, 255, 255),
                 1)
 
-    draw_lines(lines, frame)
+    frame = im.draw_hough_lines(lines, frame)
 
     cv2.imshow('live', frame)
+    cv2.imwrite(f'./out/frame_{frame_num}.png', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
     elapsed = time.time() - start
-    print(f'elapsed: {round(elapsed * 1000, 4)}ms')
+    print(f'elapsed: {round(elapsed, 4) * 1000}ms')
 
 cap.release()
+
 cv2.destroyAllWindows()
