@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from itertools import groupby
 
+from foos.game import Line, Point
+
 class ImageManipulator:
     def __init__(self):
         print(__name__)
@@ -72,11 +74,38 @@ class ImageManipulator:
             print(f'length={test_angle[4]} slope={test_angle[3]} angle={test_angle[2]} x1={test_angle[0][0]} y1={test_angle[0][1]} x2={test_angle[1][0]} y2={test_angle[1][1]}')
 
 
+        tolerance = 20
+        sorted_lines = sorted(angles, key=lambda x: x[3])
+        grouped_lines = [list(it) for k, it in groupby(sorted_lines, key=lambda x: x[3])]
+        test_lines = []
+        for grouped_line in grouped_lines:
+            avg_lines = []
+            i = 0
+            for i in range(len(grouped_line) - 1):
+                x1 = grouped_line[i][0][0]
+                x2 = grouped_line[i+1][0][0]
+                x3 = grouped_line[i][1][0]
+                x4 = grouped_line[i+1][1][0]
 
-        sorted_lines = sorted(angles, key=lambda x: x[0][0])
-        grouped_linex = [list(it) for k, it in groupby(sorted_lines, key=lambda x: x[3])]
+                if abs(x1 - x2) < tolerance:
+                    x = (x1 + x2 + x3 + x4) // 4
 
-        for p1, p2, angle, slope, length in sorted_lines:
+                    y1 = grouped_line[i][0][1]
+                    y2 = grouped_line[i + 1][0][1]
+                    y3 = grouped_line[i][1][1]
+                    y4 = grouped_line[i + 1][1][1]
+
+                    y = max(y1, y2, y3, y4)
+                    test_lines.append(((x, 0), (x, y), grouped_line[i][2]))
+                else:
+                    test_lines.append(grouped_line[i])
+
+        for p1, p2, *_ in sorted_lines:
             cv2.line(img, p1, p2, (255, 0, 0), 2)
+
+        for p1, p2, *_ in test_lines:
+            print(f'test_lines: {len(test_lines)}')
+
+            cv2.line(img, p1, p2, (0, 0, 255), 2)
 
         return img

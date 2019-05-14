@@ -74,8 +74,8 @@ def draw_contrail(img):
 
 
 def find_ball(cnts):
+    ball = None
     if len(cnts) > 0:
-        ball = None
         i = 0
         for c in cnts:
             area = cv2.contourArea(c)
@@ -84,9 +84,7 @@ def find_ball(cnts):
                 continue
 
             (x, y), radius = cv2.minEnclosingCircle(c)
-            computed_area = np.pi * radius * radius
-
-            if radius < 18 or radius > 38:
+            if radius < 18 or radius > 35:
                 continue
 
             x = int(x)
@@ -131,8 +129,10 @@ while cap.isOpened():
     cv2.imshow('canny', edges)
     edge_dilate = cv2.dilate(edges, None, iterations=4)
     cv2.imshow('canny_dialate', edge_dilate)
+    eroded = cv2.erode(edge_dilate, None, iterations=12)
+    cv2.imshow('erode', eroded )
 
-    edges = cv2.Canny(edge_dilate, 100, 150, apertureSize=3)
+    edges = cv2.Canny(eroded, 100, 150, apertureSize=3)
     cv2.imshow('canny after dilate', edges)
 
     lines = im.get_lines(edges)
@@ -182,9 +182,6 @@ while cap.isOpened():
             px = int(ball[0] + factor)
             py = int(px * m + b)
 
-            bx = ball[0]
-            by = ball[1]
-
             cv2.arrowedLine(frame, (ball[0], ball[1]), (px, py), (255, 0, 0), 5)
 
     if ball:
@@ -212,5 +209,4 @@ while cap.isOpened():
     print(f'elapsed: {round(elapsed, 4) * 1000}ms')
 
 cap.release()
-
 cv2.destroyAllWindows()
