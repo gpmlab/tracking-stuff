@@ -32,6 +32,7 @@ class Line:
         self._slope = self.get_slope()
         self._length = self.get_length()
 
+
     @property
     def p1(self):
         return self._p1
@@ -47,6 +48,12 @@ class Line:
     @p2.setter
     def p2(self, value):
         self._p2 = value
+
+    def p1_tuple(self):
+        return self._p1.x, self._p1.y
+
+    def p2_tuple(self):
+        return self._p2.x, self._p2.y
 
     @property
     def angle(self):
@@ -73,15 +80,15 @@ class Line:
         self._length = value
 
     def get_length(self, ndigits=2):
-        x = np.array((self.p1.x, self.p1.y))
-        y = np.array(self.p2.x, self.p2.y)
+        x = np.array((self._p1.x, self._p1.y))
+        y = np.array(self._p2.x, self._p2.y)
 
         length = np.sqrt(np.sum((x - y) ** 2))
         return round(length, ndigits=ndigits)
 
     def get_slope(self, ndigits=2):
-        dx = abs(self.p2.x - self.p1.x)
-        dy = abs(self.p2.y - self.p1.y)
+        dx = abs(self._p2.x - self._p1.x)
+        dy = abs(self._p2.y - self._p1.y)
 
         if dy == 0:
             return None
@@ -89,7 +96,7 @@ class Line:
         return round(dx / dy, ndigits=ndigits)
 
     def get_angle(self):
-        angle = np.arctan2(self.p2.y - self.p1.y, self.p2.x - self.p1.x)
+        angle = np.arctan2(self._p2.y - self._p1.y, self._p2.x - self._p1.x)
         angle = angle * (180 / np.pi)
 
         return angle

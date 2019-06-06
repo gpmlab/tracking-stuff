@@ -16,7 +16,7 @@ cap = cv2.VideoCapture(path)
 
 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print('Frame count:', frame_count)
-cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # start a bit later in the video
+cap.set(cv2.CAP_PROP_POS_FRAMES, 500)  # start a bit later in the video
 
 
 def resize(img, x, y):
@@ -129,8 +129,8 @@ while cap.isOpened():
     cv2.imshow('canny', edges)
     edge_dilate = cv2.dilate(edges, None, iterations=4)
     cv2.imshow('canny_dialate', edge_dilate)
-    eroded = cv2.erode(edge_dilate, None, iterations=12)
-    cv2.imshow('erode', eroded )
+    eroded = cv2.erode(edge_dilate, None, iterations=10)
+    cv2.imshow('erode', eroded)
 
     edges = cv2.Canny(eroded, 100, 150, apertureSize=3)
     cv2.imshow('canny after dilate', edges)
@@ -164,7 +164,7 @@ while cap.isOpened():
         x = x + dx
         y = y + dy
 
-        cv2.circle(frame, (x, y), previous_ball[2], (0, 0, 255, 128), 4)
+        cv2.circle(frame, (x, y), 22, (0, 0, 255, 128), 4)
         previous_ball = (x, y, previous_ball[2], previous_ball[3])
 
     elif ball and previous_ball:
@@ -200,9 +200,9 @@ while cap.isOpened():
     frame = im.draw_hough_lines(lines, frame)
 
     cv2.imshow('live', frame)
-    cv2.imwrite(f'./out/frame_{frame_num}.png', frame)
+    #cv2.imwrite(f'./out/frame_{frame_num}.png', frame)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(0) & 0xFF == ord('q'):
         break
 
     elapsed = time.time() - start

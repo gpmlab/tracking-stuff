@@ -51,7 +51,6 @@ class ImageManipulator:
         final_lines = {}
         angles = []
 
-
         for line in lines:
             for x1, y1, x2, y2 in line:
 
@@ -68,11 +67,9 @@ class ImageManipulator:
 
                 angles.append((p1, p2, angle, slope, length))
 
-
         print(f'lines: {len(angles)}')
         for test_angle in angles:
             print(f'length={test_angle[4]} slope={test_angle[3]} angle={test_angle[2]} x1={test_angle[0][0]} y1={test_angle[0][1]} x2={test_angle[1][0]} y2={test_angle[1][1]}')
-
 
         tolerance = 20
         sorted_lines = sorted(angles, key=lambda x: x[3])
@@ -83,9 +80,9 @@ class ImageManipulator:
             i = 0
             for i in range(len(grouped_line) - 1):
                 x1 = grouped_line[i][0][0]
-                x2 = grouped_line[i+1][0][0]
+                x2 = grouped_line[i + 1][0][0]
                 x3 = grouped_line[i][1][0]
-                x4 = grouped_line[i+1][1][0]
+                x4 = grouped_line[i + 1][1][0]
 
                 if abs(x1 - x2) < tolerance:
                     x = (x1 + x2 + x3 + x4) // 4
