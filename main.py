@@ -16,7 +16,7 @@ cap = cv2.VideoCapture(path)
 
 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print('Frame count:', frame_count)
-cap.set(cv2.CAP_PROP_POS_FRAMES, 500)  # start a bit later in the video
+cap.set(cv2.CAP_PROP_POS_FRAMES, 750)  # start a bit later in the video
 
 
 def resize(img, x, y):
